@@ -27,3 +27,7 @@ pipenv shell
 # https://stackoverflow.com/a/47296960
 python -m ipykernel install --user --name=cs221-pommerman
 ```
+
+# Submission
+
+http://web.stanford.edu/class/cs221/project.html#p-proposal
