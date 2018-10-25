@@ -1,3 +1,5 @@
+Forked from: [Playground Git Repository](https://github.com/MultiAgentLearning/playground) at #commit: [2680755e16682790f29df5992654e7e72a333bed](https://github.com/MultiAgentLearning/playground/blob/2680755e16682790f29df5992654e7e72a333bed/)
+
 # Playground
 
 > First time? check out our [website](https://www.pommerman.com) for more information,
