@@ -32,19 +32,19 @@ def clean_up_agents(agents):
 
 
 class WrappedEnv(OpenAIGym):
-    '''An Env Wrapper used to make it easier to work 
+    '''An Env Wrapper used to make it easier to work
     with multiple agents'''
     def __init__(self, gym, visualize=False):
         self.gym = gym
         self.visualize = visualize
 
-    def execute(self, actions):
+    def execute(self, action):
         if self.visualize:
             self.gym.render()
 
         obs = self.gym.get_observations()
         all_actions = self.gym.act(obs)
-        all_actions.insert(self.gym.training_agent, actions)
+        all_actions.insert(self.gym.training_agent, action)
         state, reward, terminal, _ = self.gym.step(all_actions)
         agent_state = self.gym.featurize(state[self.gym.training_agent])
         agent_reward = reward[self.gym.training_agent]
