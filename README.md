@@ -28,6 +28,23 @@ pipenv shell
 python -m ipykernel install --user --name=cs221-pommerman
 ```
 
+#### Run game
+
+```bash
+cd playground
+
+# Run this command every time before executing the programs below.
+# Also need to run this command after each code update.
+python setup.py install
+
+# Control agents programmatically
+python setup.py install && python examples/simple_ffa_run.py
+
+# Control agents from CLI
+# See more detailed docs at: playground/docs/CLI.md
+pom_battle --agents=player::arrows,test::agents.SimpleAgent,random::null,random::null --times=2
+```
+
 # Submission
 
 http://web.stanford.edu/class/cs221/project.html#p-proposal
