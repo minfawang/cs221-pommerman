@@ -34,11 +34,11 @@ python -m ipykernel install --user --name=cs221-pommerman
 cd playground
 
 # Run this command every time before executing the programs below.
-# Also need to run this command after each code update.
-python setup.py install
+# "develop" vs "install": https://stackoverflow.com/a/19048754/4115411
+python setup.py develop
 
 # Control agents programmatically
-python setup.py install && python examples/simple_ffa_run.py
+python examples/simple_ffa_run.py
 
 # Control agents from CLI
 # See more detailed docs at: playground/docs/CLI.md
