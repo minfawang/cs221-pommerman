@@ -32,12 +32,13 @@ from tensorforce.agents import PPOAgent
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # This set the environment.
 
 DEBUG = False
 SHOULD_RENDER = False
-NUM_EPISODES = 50000
+NUM_EPISODES = 100000
 MAX_EPISODE_TIMTESTAMPS = 2000
-MODEL_DIR = '/Users/voiceup/Git/cs221-pommerman/playground/model_dir/tf_small_reward/'
+MODEL_DIR = '/home/citizenuspa/cs221-pommerman/playground/model_dir/tf_small_reward/'
 REPORT_EVERY_ITER = 20
 SAVE_EVERY_ITER = 100
 
