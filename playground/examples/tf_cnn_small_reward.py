@@ -40,7 +40,7 @@ DEBUG = False
 SHOULD_RENDER = False
 NUM_EPISODES = 100000
 MAX_EPISODE_TIMTESTAMPS = 2000
-MODEL_DIR = '../playground/model_dir/tf_cnn_small_reward/'
+MODEL_DIR = '../model_dir/tf_cnn_small_reward/'
 REPORT_EVERY_ITER = 20
 SAVE_EVERY_ITER = 100
 
