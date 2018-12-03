@@ -32,7 +32,7 @@ from tensorforce.agents import PPOAgent
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
 
-from pommerman_network import PommerNet, PommerNetBase, BuildPPONetWorkProfile
+from pommerman_network import PommerNet, PommerNetBase, BuildPPONetWorkProfile, BuildBaseNetWorkProfile
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # This set the environment.
 
