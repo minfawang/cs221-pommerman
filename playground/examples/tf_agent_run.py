@@ -34,7 +34,7 @@ from tensorforce.contrib.openai_gym import OpenAIGym
 
 DEBUG = False
 SHOULD_RENDER = False
-NUM_EPISODES = 1000
+NUM_EPISODES = 30000
 MAX_EPISODE_TIMTESTAMPS = 2000
 MODEL_DIR = '/Users/voiceup/Git/cs221-pommerman/playground/model_dir/tf_agent/'
 REPORT_EVERY_ITER = 20
