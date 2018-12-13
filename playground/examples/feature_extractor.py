@@ -1,8 +1,89 @@
 import numpy as np
+MAX_EPISODE_TIMTESTAMPS = 2000
 
 # Feature engineering
 def make_np_float(feature):
     return np.array(feature).astype(np.float32)
+
+
+def categorical_feature_map(obs):
+    """
+    Produce 19 categorical feature map.
+    
+    Learned from https://arxiv.org/pdf/1807.06919.pdf
+    
+    The first map contains the integer values of each bomb’s blast strength at the location of that bomb.
+    The second map is similar but the integer value is the bomb’s remaining life. At all other positions,
+    the first two maps are zero. 
+    The next map is binary and contains a single one at the agent’s location. If the agent is dead, 
+    this map is zero everywhere. 
+    The following two maps are similar. One is full
+    with the agent’s integer current bomb count, the other with its blast radius. We then have a full binary
+    map that is one if the agent can kick and zero otherwise.
+    
+    The next maps deal with the other agents. The first contains only ones if the agent has a teammate
+    and zeros otherwise. This is useful for building agents that can play both team and solo matches. If
+    the agent has a teammate, the next map is binary with a one at the teammate’s location (and zero if
+    she is not alive). 
+    
+    Otherwise, the agent has three enemies, so the next map contains the position of the
+    enemy that started in the diagonally opposed corner from the agent. The following two maps contain
+    the positions of the other two enemies, which are present in both solo and team games.
+    
+    We then include eight feature maps representing the respective locations of passages, rigid walls,
+    wooden walls, flames, extra-bomb power-ups, increase-blast-strength power-ups, and kicking-ability
+    power-ups. All are binary with ones at the corresponding locations.
+    
+    Finally, we include a full map with the float ratio of the current step to the total number of steps. This
+    information is useful for distinguishing among observation states that are seemingly very similar,
+    but in reality are very different because the game has a fixed ending step where the agent receives
+    negative reward for not winning.
+    """
+    board = obs["board"].reshape(11,11,1).astype(np.float32)
+    bomb_blast_strength = obs["bomb_blast_strength"].reshape(11,11,1).astype(np.float32)
+    bomb_life = obs["bomb_life"].reshape(11,11,1).astype(np.float32)
+    position = make_np_float(obs["position"])
+    ammo = make_np_float([obs["ammo"]])
+    blast_strength = make_np_float([obs["blast_strength"]])
+    can_kick = make_np_float([obs["can_kick"]])
+
+    teammate = obs["teammate"]
+    if teammate is not None:
+        teammate = teammate.value
+    else:
+        teammate = -1
+    teammate = make_np_float([teammate])
+
+    enemies = obs["enemies"]
+    enemies = [e.value for e in enemies]
+    if len(enemies) < 3:
+        enemies = enemies + [-1]*(3 - len(enemies))
+    enemies = make_np_float(enemies)
+    
+    fmaps = {}
+    fmaps['fmap1'] = bomb_blast_strength
+    fmaps['fmap2'] = bomb_life
+    fmaps['fmap3'] = np.zeros((11, 11, 1))
+    fmaps['fmap3'][int(position[0])][int(position[1])] = 1.0
+    
+    fmaps['fmap4'] = np.ones((11, 11, 1)) * ammo
+    fmaps['fmap5'] = np.ones((11, 11, 1)) * blast_strength
+    fmaps['fmap6'] = np.ones((11, 11, 1)) * can_kick
+    
+    fmaps['fmap7'] = (board == enemies[0]).astype(np.float32)
+    fmaps['fmap8'] = (board == enemies[1]).astype(np.float32)
+    fmaps['fmap9'] = (board == enemies[2]).astype(np.float32)
+    
+    fmaps['fmap10'] = (board == 0).astype(np.float32) # passage
+    fmaps['fmap11'] = (board == 1).astype(np.float32) # rigid walls
+    fmaps['fmap12'] = (board == 2).astype(np.float32) # wooden walls
+    fmaps['fmap13'] = (board == 4).astype(np.float32) # flames
+    fmaps['fmap14'] = (board == 6).astype(np.float32) # extra-bomb power-ups, 
+    fmaps['fmap15'] = (board == 7).astype(np.float32) # increase-blast-strength power-ups
+    fmaps['fmap16'] = (board == 8).astype(np.float32) # kicking-ability power-ups
+    
+    fmaps['fmap17'] = np.ones((11, 11, 1)) * float(obs['step_count']) / MAX_EPISODE_TIMTESTAMPS
+    return fmaps
 
 def featurize_map(obs):
     """

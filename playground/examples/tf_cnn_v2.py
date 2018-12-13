@@ -32,8 +32,8 @@ from tensorforce.agents import PPOAgent
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
 
-
-from feature_extractor import featurize_map
+from feature_extractor import categorical_feature_map as cnn_featurize_map
+from pommerman_network import BuildPPONetWorkProfileV2, BuildBaseNetWorkProfileV2
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # This set the environment.
 
@@ -41,7 +41,7 @@ DEBUG = False
 SHOULD_RENDER = False
 NUM_EPISODES = 100000
 MAX_EPISODE_TIMTESTAMPS = 2000
-MODEL_DIR = '../model_dir/tf_simple_rule/'
+MODEL_DIR = '../model_dir/tf_cnn_v2/'
 REPORT_EVERY_ITER = 20
 SAVE_EVERY_ITER = 100
 
@@ -66,11 +66,9 @@ def episode_finished(r):
   if r.episode % REPORT_EVERY_ITER == 0:
     print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(
           ep=r.episode, ts=r.episode_timestep, reward=reward))
-    
-    wins, losses = get_win_loss(episode_recorder[-REPORT_EVERY_ITER:])
-    print('Episode win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
+
     wins, losses = get_win_loss(episode_recorder)
-    print('Overall win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
+    print('Overall win/loss: {}/{}'.format(wins, losses))
 
   if r.episode % SAVE_EVERY_ITER == 0:
     print('saving model ...')
@@ -142,9 +140,12 @@ def compute_agent_reward(old_state, state, game_reward):
   return reward
 
 
-def featurize(obs):
-    feature_map = featurize_map(obs)
-    return np.concatenate(list(feature_map.values()))
+def featurize_map(obs):
+    fmaps = cnn_featurize_map(obs)
+    feature_map = {
+        'frame_feature': np.concatenate(list(fmaps.values()), axis=2)
+    }
+    return feature_map
 
 class TensorforceAgent(BaseAgent):
     def act(self, obs, action_space):
@@ -152,34 +153,35 @@ class TensorforceAgent(BaseAgent):
 
 
 def create_env_agent():
-  # Instantiate the environment
+  '''
+  We use a similar setup to that used in the Maze game. The architecture differences are that we have
+    an additional two convolutional layers at the beginning, use 256 output channels, and have output
+    dimensions of 1024 and 512, respectively, for the linear layers. This architecture was not tuned at all
+    during the course of our experiments. Further hyperparameter differences are that we used a learning
+    rate of 3 × 10−4
+    and a gamma of 1.0. These models trained for 72 hours, which is ∼50M frames. 
+  '''
   config = ffa_v0_fast_env()
   env = Pomme(**config["env_kwargs"])
   env.seed(0)
-
-  # Create a Proximal Policy Optimization agent
   agent = PPOAgent(
-      states=dict(type='float', shape=(80)),
+      states = dict(
+          frame_feature=dict(shape=(11, 11, 17), type='float'),
+      ),
       actions=dict(type='int', num_actions=env.action_space.n),
-      network=[
-          dict(type='dense', size=64),
-          dict(type='dense', size=64)
-      ],
+      network=BuildPPONetWorkProfileV2(),
       batching_capacity=1000,
       step_optimizer=dict(
           type='adam',
-          learning_rate=2e-4
+          learning_rate=3e-4
       ),
 
       # PGModel
-      baseline_mode='network',
-      baseline=dict(type='custom', network=[
-          dict(type='dense', size=64),
-          dict(type='dense', size=64)
-      ]),
+      baseline_mode='states',
+      baseline=dict(type='custom', network=BuildBaseNetWorkProfileV2()),
       baseline_optimizer=dict(
           type='adam',
-          learning_rate=2e-4
+          learning_rate=3e-4
       ),
   )
 
@@ -219,7 +221,7 @@ class WrappedEnv(OpenAIGym):
         all_actions = self.gym.act(obs)
         all_actions.insert(self.gym.training_agent, actions)
         state, reward, terminal, _ = self.gym.step(all_actions)
-        agent_state = featurize(state[self.gym.training_agent])
+        agent_state = featurize_map(state[self.gym.training_agent])
         agent_reward = reward[self.gym.training_agent]
 
         agent_reward = self.agent_reward_fn_(
@@ -239,7 +241,7 @@ class WrappedEnv(OpenAIGym):
 
     def reset(self):
         obs = self.gym.reset()
-        agent_obs = featurize(obs[3])
+        agent_obs = featurize_map(obs[3])
         return agent_obs
 
 
