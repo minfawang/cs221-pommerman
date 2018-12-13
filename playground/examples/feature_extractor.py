@@ -96,18 +96,87 @@ def featurize_map(obs):
     6. range to powerups
     7. range to can kick
     8. bomb count
-    9. EvadeCondition: 
+    9. EvadeCondition
+    10. AttackCondition
+    11. ExplorationCondition
     '''
+    def getDistance(pos1, pos2):
+        '''Calculate the Manhattan distance between two position.
+
+        A better solution might be to run BFS to get the real distance between two points, since 
+        some cells are blocked.
+        '''
+        mh_dist = float(abs(pos1[0]-pos2[0]) + abs(pos1[1]-pos2[1]))
+        return mh_dist, (1.0)/(mh_dist+1.0)
     
-    #1. number of enemies within range 4, 8, 16, 20.
-    def getManhattanDistance(pos1, pos2):
-        # Calculate the Manhattan Distance
-        
-        
+    def withinBombRange(bomb_pos, player_pos, strength):
+        i, j = bomb_pos
+        return (abs(i-player_pos[0]) <= strength and j == player_pos[1]) or (
+            abs(j-player_pos[1]) <= strength and i == player_pos[0])
+    
+    dist_to_enemies=[-1.0] * 6
+    num_enemies_within_range=[0.0] * 3
+    valid_direction=0.0
+    num_wood = 0.0
+    
+    dist_to_bomb=[] # distance to 10 bombs
+    live_of_bomb=[] # live of 10 bombs
+    strength_of_bomb=[]
+    within_bomb_range=[]
+    wood_wall_in_range_of_bomb=0.0
+    enemy_in_range_of_bomb=0.0
+
+    dist_to_powerup=0.0
+    dist_to_kick=0.0
+
+
     # Get current position
+    # https://github.com/MultiAgentLearning/playground/blob/master/docs/environment.md
+    enemy_id_map = {}
+    for e in range(len(enemies)):
+        enemy_id_map[enemies[e]]=e
+
     for i in range(11):
         for j in range(11):
-            board
-    #2. closest distance to enemies and its invert.
-    
+            if getDistance(position, (i, j))[0] == 1.0:
+                if board[i][j] == 0:
+                    valid_direction += 1.0
+
+            if board[i][j] in enemies:
+                '''Instead of keeping status for each player, for simplicity, we only 
+                keep track of the status for our own agent.'''
+                enemy = getDistance(position, (i, j))
+                dist_to_enemies[enemy_id_map[board[i][j]]] = (enemy[0])
+                dist_to_enemies[enemy_id_map[board[i][j]]*2 + 1] = (enemy[1])
+                
+                if enemy[0] <=4:
+                    num_enemies_within_range[0] += 1
+                elif enemy[0] <=8:
+                    num_enemies_within_range[1] += 1
+                elif enemy[0] <=16:
+                    num_enemies_within_range[2] += 1
+                
+            if board[i][j] == 3:
+                '''We keep a list of status for each bomb here.'''
+                bomb = getDistance(position, (i, j))
+                dist_to_bomb.append(bomb[0])
+                dist_to_bomb.append(bomb[1])
+                live_of_bomb.append(bomb_life[i][j])
+                strength_of_bomb.append(bomb_blast_strength[i][j])
+                within_bomb_range.append(withinBombRange((i, j), position, bomb_blast_strength[i][j]))
+                
+                # We also want to know the bomb distance to other players, so our agent
+                # can learn how to put itself in a status that is in favor of other players.
+            
+            if board[i][j] == 2:
+                # wood
+                num_wood += 1
+                
+                
+            if board[i][j] in [6, 7, 8]:
+                # super power
+                
+    feature_map = {
+        
+    }
     return feature_map
