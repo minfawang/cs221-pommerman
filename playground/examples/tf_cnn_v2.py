@@ -66,9 +66,11 @@ def episode_finished(r):
   if r.episode % REPORT_EVERY_ITER == 0:
     print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(
           ep=r.episode, ts=r.episode_timestep, reward=reward))
-
+    
+    wins, losses = get_win_loss(episode_recorder[-REPORT_EVERY_ITER:])
+    print('Episode win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
     wins, losses = get_win_loss(episode_recorder)
-    print('Overall win/loss: {}/{}'.format(wins, losses))
+    print('Overall win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
 
   if r.episode % SAVE_EVERY_ITER == 0:
     print('saving model ...')
