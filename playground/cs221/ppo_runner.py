@@ -140,7 +140,7 @@ class WrappedEnv_MF(OpenAIGym):
         return agent_obs
 
 
-def episode_finished(base_runner, task_id, interval=100):
+def episode_finished_runner(base_runner, task_id, interval=100):
     '''Callback for summary report.
     
        A function to be called once an episodes has finished. Should take
@@ -166,7 +166,6 @@ class WrappedEnv(OpenAIGym):
     def __init__(self, gym, visualize=False):
         self.gym = gym
         self.visualize = visualize
-        self.gym_id = 0
     
     def execute(self, action):
         print('Executing...')
@@ -213,7 +212,6 @@ def main():
     print(pommerman.REGISTRY)
     
     run_in_thread = True
-    single_runner = False
     
     # Create a set of agents (exactly four)
     env, agent = create_env_agent()
@@ -245,12 +243,12 @@ def main():
             threaded_runner.close()
         except AttributeError as e:
             print('AttributeError: ', e)
-    elif single_runner:
+    else:
         runner = Runner(agent=agent, environment=wrapped_env)
         runner.run(
-          episodes=NUM_EPISODES,
+          episodes=10,
           max_episode_timesteps=MAX_EPISODE_TIMTESTAMPS,
-          episode_finished=episode_finished
+          episode_finished=episode_finished_runner
         )
 
         try:
