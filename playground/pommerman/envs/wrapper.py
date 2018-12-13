@@ -120,9 +120,18 @@ class BackPlayWrappedEnv(OpenAIGym):
         self.featurize_fn_ = featurize_fn
         self.demo_states = None
 
-        self.episode_number = episode_number
         if not os.path.exists(state_root_dir):
           os.makedirs(state_root_dir)
+
+        self.episode_number = episode_number
+        # Check if there is some snapshot that is above the episode number,
+        # which can happen if we terminate the program in the middle of training.
+        max_episode_from_state_dir = max(
+            [int(episode) for episode in os.listdir(state_root_dir)] or [0])
+        if episode_number + 1 <= max_episode_from_state_dir:
+          print('[WARNING] episode number ({}) < max_episode_from_state_dir ({}). Overwritting episode number...'.format(
+              episode_number, max_episode_from_state_dir))
+          self.episode_number = max_episode_from_state_dir
 
     def set_agent_reward_fn(agent_reward_fn):
       self.agent_reward_fn_ = agent_reward_fn
