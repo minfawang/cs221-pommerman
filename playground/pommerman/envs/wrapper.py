@@ -91,6 +91,25 @@ def get_actions_str(actions, agent_index):
 
 
 class BackPlayWrappedEnv(OpenAIGym):
+    """
+    This wrapper enables BackPlay by storing 2 gym envs:
+    * The "gym" is the main learning environment. Its initial state is derived
+      from the "demo_gym".
+    * The "demo_gym" is going to play a full game without learning. It will
+      take snapshots of every single state of the game, and then feeds a subset
+      of the states to the "gym" as its initial learning state.
+
+    We down-sample the number of states to be fewer than or equal to
+    MAX_NUM_STATES_TO_TRAIN_PER_EPISODE. It ensures the model to learn more
+    efficiently by exploring more variantions of situations.
+
+    In the sub-sampled states, we repeat the following procedures until the
+    remaining states if empty:
+      1. Sample a state from the last SAMPLE_FROM_LAST_K_STATES states.
+      2. Remove that state from the states and use it as the inital state for
+         "gym".
+      3. Train the agent in "gym".
+    """
     def __init__(self, gym, agent_reward_fn, featurize_fn,
                  state_root_dir, episode_number=0, visualize=False):
         self.demo_gym = make_demo_gym()
