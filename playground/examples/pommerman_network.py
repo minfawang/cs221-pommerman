@@ -280,10 +280,10 @@ def BuildBaseNetWorkProfileV2():
         dict(type='input', names='frame_feature'),
         dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
         dict(type='pool2d', window=2, stride=2),
-        dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
-        dict(type='pool2d', window=2, stride=2),
-        dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
-        dict(type='pool2d', window=2, stride=2),
+        #dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
+        #dict(type='pool2d', window=2, stride=2),
+        #dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
+        #dict(type='pool2d', window=2, stride=2),
         dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
         dict(type='pool2d', window=2, stride=2),
         dict(type='flatten'),
@@ -294,7 +294,7 @@ def BuildBaseNetWorkProfileV2():
     network.append([
         dict(type='input', names=['frame_feature-emb'],
              aggregation_type='concat'),
-        dict(type='dense', size=1024, activation='relu'),
         dict(type='dense', size=512, activation='relu'),
+        dict(type='dense', size=256, activation='relu'),
     ])
     return network

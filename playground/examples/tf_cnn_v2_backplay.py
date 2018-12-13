@@ -36,7 +36,7 @@ from tensorforce.contrib.openai_gym import OpenAIGym
 from feature_extractor import categorical_feature_map as cnn_featurize_map
 from pommerman_network import BuildPPONetWorkProfileV2, BuildBaseNetWorkProfileV2
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # This set the environment.
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # This set the environment.
 
 DEBUG = False
 SHOULD_RENDER = False
@@ -190,7 +190,7 @@ def create_env_agent():
       baseline=dict(type='custom', network=BuildBaseNetWorkProfileV2()),
       baseline_optimizer=dict(
           type='adam',
-          learning_rate=3e-4
+          learning_rate=2.5e-4
       ),
   )
 
