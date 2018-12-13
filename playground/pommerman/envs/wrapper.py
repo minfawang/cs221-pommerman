@@ -166,15 +166,21 @@ class BackPlayWrappedEnv(OpenAIGym):
       record_json_dir = os.path.join(self.state_root_dir, str(self.episode_number))
 
       while not done:
-        env.render(
-            record_json_dir=record_json_dir,
-            do_sleep=False)
+        if self.visualize:
+          env.render(
+              record_json_dir=record_json_dir,
+              do_sleep=False)
+        else:
+          env.save_json(record_json_dir)
         actions = env.act(obs)
         obs, reward, done, info = env.step(actions)
 
-      env.render(
-          record_json_dir=record_json_dir,
-          do_sleep=False)
+      if self.visualize:
+        env.render(
+            record_json_dir=record_json_dir,
+            do_sleep=False)
+      else:
+        env.save_json(record_json_dir)
       env.render(close=True)
 
       finished_at = datetime.now().isoformat()
