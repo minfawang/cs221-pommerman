@@ -225,3 +225,76 @@ def BuildBaseNetWorkProfile():
         dict(type='dense', size=64, activation='relu')
     ])
     return network
+
+##################################################
+## V2
+##################################################
+'''
+We use a standard deep RL setup for our agents. The agent’s policy and value functions are
+parameterized by a convolutional neural network with 2 layers each of 32 output channels, followed
+by two linear layers with 128 dimensions. Each of the layers are followed by ReLU activations. This
+body then feeds two heads, a scalar value function and a softmax policy function over the five actions.
+All of the CNN kernels are 3x3 with stride and padding of one.
+
+
+We use a similar setup to that used in the Maze game. The architecture differences are that we have
+an additional two convolutional layers at the beginning, use 256 output channels, and have output
+dimensions of 1024 and 512, respectively, for the linear layers. This architecture was not tuned at all
+during the course of our experiments. Further hyperparameter differences are that we used a learning
+rate of 3 × 10−4
+and a gamma of 1.0. These models trained for 72 hours, which is ∼50M frames.
+'''
+def BuildPPONetWorkProfileV2():
+    network = list()
+    
+    # BUILD CNN
+    network.append([
+        dict(type='input', names='frame_feature'),
+        dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='flatten'),
+        dict(type='output', name='frame_feature-emb')
+    ])
+    
+    # Final touch
+    network.append([
+        dict(type='input', names=['frame_feature-emb'],
+             aggregation_type='concat'),
+        dict(type='dense', size=1024, activation='relu'),
+        dict(type='dense', size=512, activation='relu'),
+    ])
+    
+    return network
+
+def BuildBaseNetWorkProfileV2():
+    network = list()
+    
+    # BUILD CNN
+    network.append([
+        dict(type='input', names='frame_feature'),
+        dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=256, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='conv2d', size=32, window=3, stride=1, padding='SAME', activation='relu'),
+        dict(type='pool2d', window=2, stride=2),
+        dict(type='flatten'),
+        dict(type='output', name='frame_feature-emb')
+    ])
+    
+    # Final touch
+    network.append([
+        dict(type='input', names=['frame_feature-emb'],
+             aggregation_type='concat'),
+        dict(type='dense', size=1024, activation='relu'),
+        dict(type='dense', size=512, activation='relu'),
+    ])
+    return network
