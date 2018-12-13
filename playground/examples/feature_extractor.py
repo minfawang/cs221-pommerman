@@ -62,8 +62,18 @@ def featurize_map(obs):
     6. range to powerups
     7. range to can kick
     8. bomb count
-    9. EvadeCondition: 
+    9. EvadeCondition
+    10. AttackCondition
+    11. ExplorationCondition
     '''
+    def getDistance(pos1, pos2):
+        '''Calculate the Manhattan distance between two position.
+
+        A better solution might be to run BFS to get the real distance between two points, since 
+        some cells are blocked.
+        '''
+        mh_dist = float(abs(pos1[0]-pos2[0]) + abs(pos1[1]-pos2[1]))
+        return mh_dist, (1.0)/(mh_dist+1.0)
     
     def getManhattanDistance(pos1, pos2):
         # Calculate the Manhattan Distance
