@@ -22,6 +22,7 @@ import pommerman
 from pommerman.agents import SimpleAgent, BaseAgent
 from pommerman.configs import ffa_v0_fast_env
 from pommerman.envs.v0 import Pomme
+from pommerman.envs.wrapper import BackPlayWrappedEnv
 
 import numpy as np
 import collections
@@ -34,11 +35,18 @@ from tensorforce.contrib.openai_gym import OpenAIGym
 
 DEBUG = False
 SHOULD_RENDER = False
-NUM_EPISODES = 30000
+NUM_EPISODES = 10000
 MAX_EPISODE_TIMTESTAMPS = 2000
-MODEL_DIR = '/Users/voiceup/Git/cs221-pommerman/playground/model_dir/tf_agent/'
+MODEL_NAME = 'nn3_backplay'
+MODEL_DIR = os.path.join('model_dir/', MODEL_NAME) + '/'
+STATE_ROOT_DIR = os.path.join('records/', MODEL_NAME)
 REPORT_EVERY_ITER = 20
 SAVE_EVERY_ITER = 100
+USE_BACKPLAY = True
+TRAIN_WINS_ONLY = True
+
+assert os.getcwd().split('/')[-1] == 'playground', 'Please start the program from the playground/ directory.'
+
 
 reward_counter = collections.Counter()
 episode_recorder = []
@@ -62,8 +70,10 @@ def episode_finished(r):
     print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(
           ep=r.episode, ts=r.episode_timestep, reward=reward))
 
+    wins, losses = get_win_loss(episode_recorder[-REPORT_EVERY_ITER:])
+    print('Episode win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
     wins, losses = get_win_loss(episode_recorder)
-    print('Overall win/loss: {}/{}'.format(wins, losses))
+    print('Overall win/loss: {}/{}, rate:{}'.format(wins, losses, float(wins)/losses))
 
   if r.episode % SAVE_EVERY_ITER == 0:
     print('saving model ...')
@@ -100,7 +110,6 @@ def get_actions_str(actions, agent_index):
     return 'all_actions: {}'.format(action_strs)
 
 
-# TODO(minfa): Update agent reward
 # if terminal and agent_alive (a.k.a. agent_reward == 1): reward += 500
 # if agent is killed: reward = -500 + 0.5 * t
 # if agent is dead for a while:
@@ -111,20 +120,52 @@ def compute_agent_reward(old_state, state, game_reward):
       state: Raw agent state.
       game_reward: Raw game reward with respect to the agent.
   """
-  reward = -1
+  reward = 0
   if game_reward == 1:
-    reward = 500
+    reward = 1.0
   elif game_reward == -1:
-    reward = -500 + 0.5 * state['step_count']
+    reward = -1.0
   else:
     old_num_alive = len(old_state['alive'])
     new_num_alive = len(state['alive'])
     dprint('alive old/new: ', old_num_alive, new_num_alive)
     if new_num_alive < old_num_alive:
-      reward = 20
-    else:
-      reward = -1
+      reward += 0.1
+
+    # [6, 7, 8] are special weapons.
+    # In the case below, the agent just eats a weapon.
+    position = state['position']
+    old_board_val = old_state['board'][position]
+    dprint('old board is new board: ', old_state['board'] is state['board'])
+    dprint('position: {}, old board val: {}'.format(position, old_board_val))
+    if old_board_val in [6, 7, 8]:
+      reward += 0.1
+
   return reward
+# # if terminal and agent_alive (a.k.a. agent_reward == 1): reward += 500
+# # if agent is killed: reward = -500 + 0.5 * t
+# # if agent is dead for a while:
+# def compute_agent_reward(old_state, state, game_reward):
+#   """
+#   Inputs:
+#       old_state: Raw agent old state.
+#       state: Raw agent state.
+#       game_reward: Raw game reward with respect to the agent.
+#   """
+#   reward = -1
+#   if game_reward == 1:
+#     reward = 500
+#   elif game_reward == -1:
+#     reward = -500 + 0.5 * state['step_count']
+#   else:
+#     old_num_alive = len(old_state['alive'])
+#     new_num_alive = len(state['alive'])
+#     dprint('alive old/new: ', old_num_alive, new_num_alive)
+#     if new_num_alive < old_num_alive:
+#       reward = 20
+#     else:
+#       reward = -1
+#   return reward
 
 
 def make_np_float(feature):
@@ -275,11 +316,23 @@ def main():
     print(e)
     print('training a new model')
 
-  wrapped_env = WrappedEnv(
-      env,
-      visualize=SHOULD_RENDER,
-      agent_reward_fn=compute_agent_reward,
-  )
+  wrapped_env = None
+  if USE_BACKPLAY:
+    wrapped_env = BackPlayWrappedEnv(
+        env,
+        agent_reward_fn=compute_agent_reward,
+        featurize_fn=featurize,
+        state_root_dir=os.path.join(STATE_ROOT_DIR),
+        episode_number=len(episode_recorder),
+        train_wins_only=TRAIN_WINS_ONLY,
+        visualize=SHOULD_RENDER,
+    )
+  else:
+    wrapped_env = WrappedEnv(
+        env,
+        visualize=SHOULD_RENDER,
+        agent_reward_fn=compute_agent_reward,
+    )
   runner = Runner(agent=agent, environment=wrapped_env)
   runner.run(
       episodes=NUM_EPISODES,

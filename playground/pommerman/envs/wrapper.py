@@ -23,46 +23,6 @@ def dprint(*args, **kwargs):
     print(*args, **kwargs)
 
 
-def get_sorted_game_states(game_state_dir):
-  def is_alive(agent_id, agents):
-    for agent in json.loads(agents):
-      if agent['agent_id'] == agent_id:
-        return agent['is_alive']
-    return False
-
-  AGENT_ID = 3
-  state_file = os.path.join(game_state_dir, 'game_state.json')
-  with open(state_file, 'r') as fin:
-    game_states = json.load(fin)
-
-    # # Game is tied.
-    # if 'winners' not in game_states:
-    #   return []
-    #
-    # # The agent is lost.
-    # winner_agent_ids = game_states['winners']
-    # if AGENT_ID not in winner_agent_ids:
-    #   return []
-
-    states = sorted(
-        [state for state in game_states['state'] if is_alive(AGENT_ID, state['agents'])],
-        key=lambda state: int(state['step_count']),
-    )
-
-    # Keep down-sampling the states by half until its size is below the ceiling.
-    while len(states) > MAX_NUM_STATES_TO_TRAIN_PER_EPISODE:
-      states = [state for i, state in enumerate(states) if i % 2]
-
-    is_tied = 'winners' not in game_states
-    is_lost = (not is_tied) and (AGENT_ID not in game_states['winners'])
-    if is_tied or is_lost:
-      if random.random() < LOST_TIE_DROP_PROB:
-        # Drop all states and only keep the initial state.
-        return states[:1]
-
-    return states
-
-
 def make_demo_gym():
   # Add 4 random agents
   config = ffa_v0_fast_env()
@@ -119,7 +79,7 @@ class BackPlayWrappedEnv(OpenAIGym):
       3. Train the agent in "gym".
     """
     def __init__(self, gym, agent_reward_fn, featurize_fn,
-                 state_root_dir, episode_number=0, visualize=False):
+                 state_root_dir, episode_number=0, train_wins_only=False, visualize=False):
         self.demo_gym = make_demo_gym()
         self.gym = gym
         self.state_root_dir = state_root_dir
@@ -127,6 +87,7 @@ class BackPlayWrappedEnv(OpenAIGym):
         self.agent_reward_fn_ = agent_reward_fn
         self.featurize_fn_ = featurize_fn
         self.demo_states = None
+        self.train_wins_only = train_wins_only
 
         if not os.path.exists(state_root_dir):
           os.makedirs(state_root_dir)
@@ -140,6 +101,40 @@ class BackPlayWrappedEnv(OpenAIGym):
           print('[WARNING] episode number ({}) < max_episode_from_state_dir ({}). Overwritting episode number...'.format(
               episode_number, max_episode_from_state_dir))
           self.episode_number = max_episode_from_state_dir
+
+    def get_sorted_game_states(self, game_state_dir):
+      def is_alive(agent_id, agents):
+        for agent in json.loads(agents):
+          if agent['agent_id'] == agent_id:
+            return agent['is_alive']
+        return False
+
+      AGENT_ID = 3
+      state_file = os.path.join(game_state_dir, 'game_state.json')
+      with open(state_file, 'r') as fin:
+        game_states = json.load(fin)
+
+        is_tied = 'winners' not in game_states
+        is_lost = (not is_tied) and (AGENT_ID not in game_states['winners'])
+        # Skip this episode if it's configured to train on winning games only.
+        if self.train_wins_only and (is_tied or is_lost):
+          return []
+
+        states = sorted(
+            [state for state in game_states['state'] if is_alive(AGENT_ID, state['agents'])],
+            key=lambda state: int(state['step_count']),
+        )
+
+        # Keep down-sampling the states by half until its size is below the ceiling.
+        while len(states) > MAX_NUM_STATES_TO_TRAIN_PER_EPISODE:
+          states = [state for i, state in enumerate(states) if i % 2]
+
+        if is_tied or is_lost:
+          if random.random() < LOST_TIE_DROP_PROB:
+            # Drop all states and only keep the initial state.
+            return states[:1]
+
+        return states
 
     def set_agent_reward_fn(agent_reward_fn):
       self.agent_reward_fn_ = agent_reward_fn
@@ -175,6 +170,9 @@ class BackPlayWrappedEnv(OpenAIGym):
         return agent_state, terminal, agent_reward
 
     def record_demo(self):
+      self.episode_number += 1
+      os.makedirs(os.path.join(self.state_root_dir, str(self.episode_number)))
+
       config = 'PommeFFACompetition-v0'
       _agents = ['test::agents.SimpleAgent'] * 4
       env = self.demo_gym
@@ -204,13 +202,27 @@ class BackPlayWrappedEnv(OpenAIGym):
       utility.join_json_state(
           record_json_dir, _agents, finished_at, config, info)
 
-      return get_sorted_game_states(record_json_dir)
+      return record_json_dir
+
+    def get_training_demo_states(self):
+      def didAgentWin(game_state_dir):
+        AGENT_ID = 3
+        state_file = os.path.join(game_state_dir, 'game_state.json')
+        with open(state_file, 'r') as fin:
+          game_states = json.load(fin)
+          return AGENT_ID in game_states.get('winners', [])
+
+      found_record = False
+      while not found_record:
+        record_json_dir = self.record_demo()
+        found_record = didAgentWin(record_json_dir) or (not self.train_wins_only)
+      return self.get_sorted_game_states(record_json_dir)
 
     def get_next_demo_state(self):
-      self.episode_number += 1
       if not self.demo_states:
-        os.makedirs(os.path.join(self.state_root_dir, str(self.episode_number)))
-        self.demo_states = self.record_demo()
+        self.demo_states = self.get_training_demo_states()
+        if not self.demo_states:
+          return None
 
       # Back play: Randomly pick one state from the last K states.
       sample_size = min(SAMPLE_FROM_LAST_K_STATES, len(self.demo_states))

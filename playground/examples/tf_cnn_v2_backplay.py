@@ -47,6 +47,7 @@ MODEL_DIR = os.path.join('model_dir/', MODEL_NAME) + '/'
 STATE_ROOT_DIR = os.path.join('records/', MODEL_NAME)
 REPORT_EVERY_ITER = 20
 SAVE_EVERY_ITER = 100
+TRAIN_WINS_ONLY = True
 
 
 assert os.getcwd().split('/')[-1] == 'playground', 'Please start the program from the playground/ directory.'
@@ -241,6 +242,7 @@ def main():
       featurize_fn=featurize_map,
       state_root_dir=os.path.join(STATE_ROOT_DIR),
       episode_number=len(episode_recorder),
+      train_wins_only=TRAIN_WINS_ONLY,
       visualize=SHOULD_RENDER,
   )
   runner = Runner(agent=agent, environment=wrapped_env)
