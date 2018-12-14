@@ -11,7 +11,7 @@ def pickle3to2(full_dir, file_prefix):
   except:
     pass
 
-ROOT_DIR = 'playground/model_dir'
+ROOT_DIR = 'model_summary'
 for project_name in os.listdir(ROOT_DIR):
   full_dir = os.path.join(ROOT_DIR, project_name)
   pickle3to2(full_dir, 'episode_recorder')
