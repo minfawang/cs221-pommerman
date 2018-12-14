@@ -1,5 +1,11 @@
 playground/notebooks/saved_ckpts/
-playground/model_dir/
+playground/model_dir/*/*.meta
+playground/model_dir/*/*.index
+playground/model_dir/*/*.data-*
+playground/model_dir/*/checkpoint
+!**episode_recorder.p
+!**reward_counter.p
+# playground/model_dir/*/checkpoint
 playground/records/
 
 
