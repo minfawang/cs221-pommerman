@@ -16,6 +16,7 @@ import tempfile
 DEBUG = False
 SAMPLE_FROM_LAST_K_STATES = 10
 MAX_NUM_STATES_TO_TRAIN_PER_EPISODE = 100
+LOST_TIE_DROP_PROB = 0.75
 
 def dprint(*args, **kwargs):
   if DEBUG:
@@ -51,6 +52,13 @@ def get_sorted_game_states(game_state_dir):
     # Keep down-sampling the states by half until its size is below the ceiling.
     while len(states) > MAX_NUM_STATES_TO_TRAIN_PER_EPISODE:
       states = [state for i, state in enumerate(states) if i % 2]
+
+    is_tied = 'winners' not in game_states
+    is_lost = (not is_tied) and (AGENT_ID not in game_states['winners'])
+    if is_tied or is_lost:
+      if random.random() < LOST_TIE_DROP_PROB:
+        # Drop all states and only keep the initial state.
+        return states[:1]
 
     return states
 
