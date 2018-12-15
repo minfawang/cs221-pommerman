@@ -45,6 +45,16 @@ python examples/simple_ffa_run.py
 pom_battle --agents=player::arrows,test::agents.SimpleAgent,random::null,random::null --times=2
 ```
 
+#### Run Training
+
+All the learning scripts are under 
+```bash
+playground/examples/tf_*.py
+```
+
+To start the training, modify the corresponding flags within the .py file, and run with python directly within the virtual environment.
+
+
 # Submission
 
 http://web.stanford.edu/class/cs221/project.html#p-proposal
